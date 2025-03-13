@@ -13,15 +13,15 @@ pub fn main() !void {
     defer rl.closeWindow();
 
     const model = try rl.loadModel("./assets/models/cheffy.glb");
-    const texture = try rl.loadTexture("./assets/textures/check.png");
+    const noise = try rl.loadTexture("./assets/textures/noise.png");
     const shader = try rl.loadShader("./assets/shaders/spiky.glsl", "./assets/shaders/grayscale.fs");
 
     const material_count: usize = @intCast(model.materialCount);
     for (0..material_count) |i| {
         model.materials[i].shader = shader;
     }
-    model.materials[0].maps[0].texture = texture;
     const time_loc = rl.getShaderLocation(shader, "time");
+    const noise_loc = rl.getShaderLocation(shader, "noise");
 
     const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 0, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
 
@@ -29,6 +29,7 @@ pub fn main() !void {
         const time: f32 = @floatCast(rl.getTime());
         const time_wobble = std.math.sin(time * 10.0) * 0.3;
         rl.setShaderValue(shader, time_loc, &time, .float);
+        rl.setShaderValue(shader, noise_loc, &noise, .float);
         _ = time_wobble;
         const y_position = 0;
         rl.beginDrawing();
