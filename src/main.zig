@@ -13,19 +13,28 @@ pub fn main() !void {
     defer rl.closeWindow();
 
     const model = try rl.loadModel("./assets/models/cheffy.glb");
-    const texture = try rl.loadTexture("./assets/textures/cheffy_tex.png");
-    const shader = try rl.loadShader("./assets/shaders/spiky.vs", "./assets/shaders/grayscale.fs");
+    const texture = try rl.loadTexture("./assets/textures/check.png");
+    const shader = try rl.loadShader("./assets/shaders/spiky.glsl", "./assets/shaders/grayscale.fs");
 
-    model.materials[0].shader = shader;
+    const material_count: usize = @intCast(model.materialCount);
+    for (0..material_count) |i| {
+        model.materials[i].shader = shader;
+    }
     model.materials[0].maps[0].texture = texture;
+    const time_loc = rl.getShaderLocation(shader, "time");
 
-    const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 0, .z = 10 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
+    const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 0, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
 
     while (!rl.windowShouldClose()) {
+        const time: f32 = @floatCast(rl.getTime());
+        const time_wobble = std.math.sin(time * 10.0) * 0.3;
+        rl.setShaderValue(shader, time_loc, &time, .float);
+        _ = time_wobble;
+        const y_position = 0;
         rl.beginDrawing();
         camera.begin();
         rl.clearBackground(rl.Color.dark_gray);
-        rl.drawModel(model, .{ .x = 0, .y = 0, .z = 0 }, 1, rl.Color.white);
+        rl.drawModel(model, .{ .x = 0, .y = y_position, .z = 0 }, 1, rl.Color.white);
         camera.end();
         rl.endDrawing();
     }
