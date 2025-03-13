@@ -24,19 +24,17 @@ vec2 wind_horizontal_direction = vec2(1.0, 0.5);
 
 void main()
 {
-		vec2 normalized_wind_direction = normalize(wind_horizontal_direction);
-		vec2 noise_pos = vec2(vertexTexCoord.x, vertexTexCoord.y);
-		float noise_value = texture2D(noise, noise_pos).r;
+		float noise_value = texture2D(noise, vertexTexCoord).r;
 		float y_value = (sin(vertexPosition.x) * 0.5) + (sin(vertexPosition.z) * 0.5);
+		float height = sin(time * (noise_value * 0.5));
 
-		vec3 newPosition = vec3(vertexPosition.x, y_value, vertexPosition.z);
+		vec3 newPosition = vec3(vertexPosition.x, height, vertexPosition.z);
 		
 		vec4 newColor = vec4(vertexColor.x - y_value, vertexColor.y - y_value, vertexColor.z - y_value, 1);
 
     fragTexCoord = vertexTexCoord;
-    fragColor = newColor;
+    fragColor = vertexColor;
 
-    // Calculate final vertex position
     gl_Position = mvp*vec4(newPosition, 1.0);
 }
 
