@@ -9,32 +9,27 @@ in vec4 vertexColor;
 // Input uniform values
 uniform mat4 mvp;
 uniform float time;
-uniform float wind_speed = 0.05;
-uniform float wind_strength = 2.0;
-uniform float wind_texture_tile_size = 20.0;
-uniform float wind_vertical_strength = 0.3;
 uniform sampler2D noise;
+uniform sampler2D check;
 
 // Output vertex attributes (to fragment shader)
 out vec2 fragTexCoord;
 out vec4 fragColor;
 
-vec2 wind_horizontal_direction = vec2(1.0, 0.5);
-
-
 void main()
 {
 		float noise_value = texture2D(noise, vertexTexCoord).r;
-		float y_value = (sin(vertexPosition.x) * 0.5) + (sin(vertexPosition.z) * 0.5);
-		float height = sin(time * (noise_value * 0.5));
-
-		vec3 newPosition = vec3(vertexPosition.x, height, vertexPosition.z);
+		//float height = sin(time * (noise_value * 10.0)) * 0.5;
+		float height = noise_value + (sin(time * 20.0) * 0.02);
+		float sway = height * sin(time);
+		vec3 newPosition = vec3(vertexPosition.x + sway, height, vertexPosition.z);
 		
-		vec4 newColor = vec4(vertexColor.x - y_value, vertexColor.y - y_value, vertexColor.z - y_value, 1);
 
     fragTexCoord = vertexTexCoord;
-    fragColor = vertexColor;
 
+		//fragColor = vec4(0.0,1.0,0.0,1.0);
+
+    fragColor = vertexColor;
     gl_Position = mvp*vec4(newPosition, 1.0);
 }
 
