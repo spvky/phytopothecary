@@ -45,7 +45,7 @@ pub fn main() !void {
     const model = try rl.loadModel("./assets/models/cheffy.glb");
     const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
     const check = try rl.loadTexture("./assets/textures/check.png");
-    const shader = try rl.loadShader("./assets/shaders/grass.glsl", null); // "./assets/shaders/grayscale.glsl");
+    const shader = try rl.loadShader("./assets/shaders/grass.glsl", null);
     const grass_patch = try rl.loadModelFromMesh(rl.genMeshPlane(100, 100, 100, 100));
 
     const material_count: usize = @intCast(grass_patch.materialCount);
