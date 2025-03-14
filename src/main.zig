@@ -10,14 +10,13 @@ pub fn spawn_balls(world: *World) void {
     _ = world.spawn(.{ physics.Velocity, t2 });
 }
 
-pub fn update_balls(world: *World) void {
+pub fn update_balls(world: *World, delta: f32) void {
     var view = world.registry.view(.{physics.Translation}, .{});
     var iter = view.entityIterator();
 
     while (iter.next()) |entity| {
         var pos = view.get(entity);
-        pos.translation.x += 0.001;
-        std.debug.print("{}:{d:.2}\n", .{ entity, pos.translation.x });
+        pos.translation.x += 1 * delta;
     }
 }
 
@@ -44,10 +43,10 @@ pub fn main() !void {
     defer rl.closeWindow();
 
     const model = try rl.loadModel("./assets/models/cheffy.glb");
-    const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(512, 512, 50, 50, 4.0));
+    const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
     const check = try rl.loadTexture("./assets/textures/check.png");
     const shader = try rl.loadShader("./assets/shaders/grass.glsl", null); // "./assets/shaders/grayscale.glsl");
-    const grass_patch = try rl.loadModelFromMesh(rl.genMeshPlane(20, 20, 100, 100));
+    const grass_patch = try rl.loadModelFromMesh(rl.genMeshPlane(100, 100, 100, 100));
 
     const material_count: usize = @intCast(grass_patch.materialCount);
     for (0..material_count) |i| {
@@ -61,7 +60,8 @@ pub fn main() !void {
     const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 4, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
 
     while (!rl.windowShouldClose()) {
-        update_balls(&world);
+        const delta = rl.getFrameTime();
+        update_balls(&world, delta);
         const time: f32 = @floatCast(rl.getTime());
         rl.setShaderValue(shader, time_loc, &time, .float);
         const y_position = 0;

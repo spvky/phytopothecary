@@ -20,7 +20,7 @@ void main()
 {
 		float noise_value = texture2D(noise, vertexTexCoord).r;
 		//float height = sin(time * (noise_value * 10.0)) * 0.5;
-		float height = noise_value + (sin(time * 20.0) * 0.02);
+		float height = noise_value + (sin(time) * 0.02);
 		float sway = height * sin(time);
 		vec3 newPosition = vec3(vertexPosition.x + sway, height, vertexPosition.z);
 		
