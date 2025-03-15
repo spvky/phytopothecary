@@ -7,7 +7,7 @@ const GRAVITY: rl.Vector3 = .{ .x = 0, .y = -9.81, .z = 0 };
 pub const Rigidbody = struct {
     collider: Collider,
     rb_type: RigidbodyType,
-    gravity: bool,
+    mass: f32,
 
     pub const RigidbodyType = enum { static, dynamic, kinematic };
     pub const ColliderTag = enum {
