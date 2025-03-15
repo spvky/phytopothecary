@@ -4,14 +4,14 @@ const physics = @import("physics.zig");
 const World = @import("world.zig").World;
 
 pub fn spawn_balls(world: *World) void {
-    const t1: physics.Translation = .{ .translation = .{ .x = 2, .y = 2, .z = 0 } };
-    const t2: physics.Translation = .{ .translation = .{ .x = 1, .y = 2, .z = 0 } };
+    const t1: physics.Transform = .{ .translation = .{ .x = 2, .y = 2, .z = 0 } };
+    const t2: physics.Transform = .{ .translation = .{ .x = 1, .y = 2, .z = 0 } };
     _ = world.spawn(.{ physics.Velocity, t1 });
     _ = world.spawn(.{ physics.Velocity, t2 });
 }
 
 pub fn update_balls(world: *World, delta: f32) void {
-    var view = world.registry.view(.{physics.Translation}, .{});
+    var view = world.registry.view(.{physics.Transform}, .{});
     var iter = view.entityIterator();
 
     while (iter.next()) |entity| {
@@ -21,7 +21,7 @@ pub fn update_balls(world: *World, delta: f32) void {
 }
 
 pub fn draw_balls(world: *World) void {
-    var view = world.registry.view(.{physics.Translation}, .{});
+    var view = world.registry.view(.{physics.Transform}, .{});
     var iter = view.entityIterator();
 
     while (iter.next()) |entity| {
