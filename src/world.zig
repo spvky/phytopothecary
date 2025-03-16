@@ -16,7 +16,7 @@ pub const World = struct {
         self.registry.deinit();
     }
 
-    pub fn spawn(self: *Self, comptime components: anytype) ecs.Entity {
+    pub fn spawn(self: *Self, components: anytype) ecs.Entity {
         const entity = self.registry.create();
         if (components.len > 0) {
             inline for (components) |component| {

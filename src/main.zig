@@ -1,7 +1,10 @@
 const std = @import("std");
 const rl = @import("raylib");
 const physics = @import("physics.zig");
+const rendering = @import("rendering.zig");
 const World = @import("world.zig").World;
+
+pub const Player = struct {};
 
 pub fn spawn_balls(world: *World) void {
     const t1: physics.Transform = .{ .translation = .{ .x = 2, .y = 2, .z = 0 } };
@@ -11,11 +14,11 @@ pub fn spawn_balls(world: *World) void {
 }
 
 pub fn update_balls(world: *World, delta: f32) void {
-    var view = world.registry.view(.{physics.Transform}, .{});
+    var view = world.registry.view(.{physics.Transform}, .{Player});
     var iter = view.entityIterator();
 
     while (iter.next()) |entity| {
-        var pos = view.get(entity);
+        var pos = view.get(physics.Transform, entity);
         pos.translation.x += 1 * delta;
     }
 }
@@ -42,7 +45,10 @@ pub fn main() !void {
     WINDOW_HEIGHT = rl.getMonitorHeight(monitor);
     defer rl.closeWindow();
 
-    const model = try rl.loadModel("./assets/models/cheffy.glb");
+    var model = try rl.loadModel("./assets/models/cheffy.glb");
+
+    const player_id = world.spawn(.{ Player, physics.Transform{ .translation = .{ .x = 0, .y = 0, .z = 0 } }, rendering.Model{ .model = &model } });
+    _ = player_id;
     const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
     const check = try rl.loadTexture("./assets/textures/check.png");
     const shader = try rl.loadShader("./assets/shaders/grass.glsl", null);
@@ -64,12 +70,12 @@ pub fn main() !void {
         update_balls(&world, delta);
         const time: f32 = @floatCast(rl.getTime());
         rl.setShaderValue(shader, time_loc, &time, .float);
-        const y_position = 0;
         rl.beginDrawing();
         camera.begin();
         rl.clearBackground(rl.Color.dark_gray);
-        draw_balls(&world);
-        rl.drawModel(model, .{ .x = 0, .y = y_position, .z = 0 }, 1, rl.Color.white);
+
+        rendering.draw_models(&world);
+        // rl.drawModel(model, .{ .x = 0, .y = y_position, .z = 0 }, 1, rl.Color.white);
         rl.drawModel(grass_patch, .{ .x = 0, .y = -3, .z = 0 }, 1, rl.Color.sky_blue);
         camera.end();
         rl.endDrawing();
