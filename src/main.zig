@@ -29,7 +29,7 @@ pub fn update_balls(world: *World, delta: f32) void {
 
     while (iter.next()) |entity| {
         var pos = view.get(entity);
-        pos.translation.z += 0.5 * delta;
+        pos.translation.x += 0.5 * delta;
     }
 }
 pub fn draw_balls(world: *World) void {
