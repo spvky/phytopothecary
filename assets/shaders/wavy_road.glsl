@@ -17,7 +17,7 @@ out vec3 worldPosition;
 
 void main()
 {
-		float sway = sin(time * 5.0) * sin(vertexPosition.z);
+		float sway = sin(time * 0.5) * sin(vertexPosition.z * 0.5);
 		vec3 newPosition = vec3(vertexPosition.x + sway, vertexPosition.y, vertexPosition.z);
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
