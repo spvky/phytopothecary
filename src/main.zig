@@ -10,14 +10,16 @@ comptime {
 
 pub const Player = struct {};
 
-pub fn player_shader_stuff(world: *World, shader: rl.Shader) void {
+pub fn player_shader_stuff(world: *World, shader: rl.Shader, road_shader: rl.Shader) void {
     const loc = rl.getShaderLocation(shader, "playerPos");
+    const road_loc = rl.getShaderLocation(road_shader, "playerPos");
     var view = world.registry.view(.{ physics.Transform, Player }, .{});
     var iter = view.entityIterator();
 
     while (iter.next()) |entity| {
         const transform = view.getConst(physics.Transform, entity);
         rl.setShaderValue(shader, loc, &transform.translation, .vec3);
+        rl.setShaderValue(road_shader, road_loc, &transform.translation, .vec3);
     }
 }
 pub fn spawn_balls(world: *World) void {
@@ -65,7 +67,14 @@ pub fn main() !void {
     const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
     const check = try rl.loadTexture("./assets/textures/check.png");
     const shader = try rl.loadShader("./assets/shaders/grass.glsl", null);
+    const road_shader = try rl.loadShader("./assets/shaders/wavy_road.glsl", "./assets/shaders/road_color.glsl");
     const grass_patch = try rl.loadModelFromMesh(rl.genMeshPlane(10, 10, 100, 100));
+    const road = try rl.loadModelFromMesh(rl.genMeshPlane(15, 100, 250, 250));
+
+    const road_material_count: usize = @intCast(road.materialCount);
+    for (0..road_material_count) |i| {
+        road.materials[i].shader = road_shader;
+    }
 
     const material_count: usize = @intCast(grass_patch.materialCount);
     for (0..material_count) |i| {
@@ -75,6 +84,7 @@ pub fn main() !void {
     grass_patch.materials[0].maps[1].texture = check;
 
     const time_loc = rl.getShaderLocation(shader, "time");
+    const time_road_loc = rl.getShaderLocation(road_shader, "time");
 
     const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 4, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
 
@@ -83,12 +93,14 @@ pub fn main() !void {
         update_balls(&world, delta);
         const time: f32 = @floatCast(rl.getTime());
         rl.setShaderValue(shader, time_loc, &time, .float);
-        player_shader_stuff(&world, shader);
+        rl.setShaderValue(road_shader, time_road_loc, &time, .float);
+        player_shader_stuff(&world, shader, road_shader);
         rl.beginDrawing();
         camera.begin();
         rl.clearBackground(rl.Color.dark_gray);
         rendering.draw_models(&world);
-        rl.drawModel(grass_patch, .{ .x = 0, .y = -3, .z = 0 }, 1, rl.Color.sky_blue);
+        // rl.drawModel(grass_patch, .{ .x = 0, .y = -3, .z = 0 }, 1, rl.Color.sky_blue);
+        rl.drawModel(road, .{ .x = 0, .y = 0, .z = 0 }, 1, rl.Color.black);
         camera.end();
         rl.endDrawing();
     }
