@@ -4,6 +4,10 @@ const physics = @import("physics.zig");
 const rendering = @import("rendering.zig");
 const World = @import("world.zig").World;
 
+comptime {
+    _ = @import("test.zig");
+}
+
 pub const Player = struct {};
 
 pub fn player_shader_stuff(world: *World, shader: rl.Shader) void {
