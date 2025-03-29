@@ -1,8 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
 const physics = @import("physics.zig");
-const rendering = @import("rendering.zig");
 const World = @import("world.zig").World;
+const ModelTag = @import("world.zig").ModelTag;
+const rendering = @import("rendering.zig");
 
 comptime {
     _ = @import("test.zig");
@@ -10,98 +11,57 @@ comptime {
 
 pub const Player = struct {};
 
-pub fn player_shader_stuff(world: *World, shader: rl.Shader, road_shader: rl.Shader) void {
-    const loc = rl.getShaderLocation(shader, "playerPos");
-    const road_loc = rl.getShaderLocation(road_shader, "playerPos");
-    var view = world.registry.view(.{ physics.Transform, Player }, .{});
-    var iter = view.entityIterator();
+pub fn player_shader_stuff(world: *World) void {
+    const road_shader_opt = world.shaders.get(.road);
 
-    while (iter.next()) |entity| {
-        const transform = view.getConst(physics.Transform, entity);
-        rl.setShaderValue(shader, loc, &transform.translation, .vec3);
-        rl.setShaderValue(road_shader, road_loc, &transform.translation, .vec3);
+    if (road_shader_opt) |shader| {
+        const loc = rl.getShaderLocation(shader, "playerPos");
+        var view = world.registry.view(.{ physics.Transform, Player }, .{});
+        var iter = view.entityIterator();
+
+        while (iter.next()) |entity| {
+            const transform = view.getConst(physics.Transform, entity);
+            rl.setShaderValue(shader, loc, &transform.translation, .vec3);
+        }
     }
 }
-pub fn spawn_balls(world: *World) void {
-    const t1: physics.Transform = .{ .translation = .{ .x = 2, .y = 2, .z = 0 } };
-    const t2: physics.Transform = .{ .translation = .{ .x = 1, .y = 2, .z = 0 } };
-    _ = world.spawn(.{ physics.Velocity, t1 });
-    _ = world.spawn(.{ physics.Velocity, t2 });
-}
-
-pub fn update_balls(world: *World, delta: f32) void {
-    var view = world.registry.view(.{physics.Transform}, .{});
-    var iter = view.entityIterator();
-
-    while (iter.next()) |entity| {
-        var pos = view.get(entity);
-        pos.translation.x += 0.5 * delta;
-    }
-}
-pub fn draw_balls(world: *World) void {
-    var view = world.registry.view(.{physics.Transform}, .{});
-    var iter = view.entityIterator();
-
-    while (iter.next()) |entity| {
-        const pos = view.getConst(entity);
-        rl.drawSphere(pos.translation, 1, rl.Color.red);
-    }
-}
-
 pub fn main() !void {
-    var world = World.init(std.heap.page_allocator);
-    spawn_balls(&world);
-    var WINDOW_WIDTH: i32 = 1600;
-    var WINDOW_HEIGHT: i32 = 900;
-    rl.setConfigFlags(.{ .window_resizable = true });
-    rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "phytopothecary");
-    const monitor = rl.getCurrentMonitor();
-    WINDOW_WIDTH = rl.getMonitorWidth(monitor);
-    WINDOW_HEIGHT = rl.getMonitorHeight(monitor);
-    defer rl.closeWindow();
+    var world = try World.init(std.heap.page_allocator);
+    defer world.deinit();
 
-    var model = try rl.loadModel("./assets/models/cheffy.glb");
+    // Load Models
+    var grass = try rl.loadModelFromMesh(rl.genMeshPlane(10, 10, 100, 100));
+    var road = try rl.loadModelFromMesh(rl.genMeshPlane(15, 100, 250, 250));
+    var player = try rl.loadModel("./assets/models/cheffy.glb");
 
-    const player_id = world.spawn(.{ Player, physics.Transform{ .translation = .{ .x = 3, .y = 0, .z = 0 } }, rendering.Model{ .model = &model } });
+    var grass_shader = try rl.loadShader("./assets/shaders/grass.glsl", null);
+    var road_shader = try rl.loadShader("./assets/shaders/wavy_road.glsl", "./assets/shaders/road_color.glsl");
+
+    try world.store_model(.grass, &grass);
+    try world.store_model(.road, &road);
+    try world.store_model(.player, &player);
+
+    try world.store_shader(.grass, &grass_shader);
+    try world.store_shader(.road, &road_shader);
+
+    world.map_shaders();
+
+    const player_id = world.spawn(.{ Player, physics.Transform{ .translation = .{ .x = 3, .y = 0, .z = 0 } }, rendering.Model{ .model = &player } });
     _ = player_id;
-    const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
-    const check = try rl.loadTexture("./assets/textures/check.png");
-    const shader = try rl.loadShader("./assets/shaders/grass.glsl", null);
-    const road_shader = try rl.loadShader("./assets/shaders/wavy_road.glsl", "./assets/shaders/road_color.glsl");
-    const grass_patch = try rl.loadModelFromMesh(rl.genMeshPlane(10, 10, 100, 100));
-    const road = try rl.loadModelFromMesh(rl.genMeshPlane(15, 100, 250, 250));
 
-    const road_material_count: usize = @intCast(road.materialCount);
-    for (0..road_material_count) |i| {
-        road.materials[i].shader = road_shader;
-    }
+    const road_id = world.spawn(.{ physics.Transform{ .translation = .{ .x = 0, .y = 0, .z = 0 } }, rendering.Model{ .model = &road } });
+    _ = road_id;
 
-    const material_count: usize = @intCast(grass_patch.materialCount);
-    for (0..material_count) |i| {
-        grass_patch.materials[i].shader = shader;
-    }
-    grass_patch.materials[0].maps[0].texture = noise;
-    grass_patch.materials[0].maps[1].texture = check;
+    // const noise = try rl.loadTextureFromImage(rl.genImagePerlinNoise(1024, 1024, 50, 50, 4.0));
+    // const check = try rl.loadTexture("./assets/textures/check.png");
+    // grass_patch.materials[0].maps[0].texture = noise;
+    // grass_patch.materials[0].maps[1].texture = check;
 
-    const time_loc = rl.getShaderLocation(shader, "time");
-    const time_road_loc = rl.getShaderLocation(road_shader, "time");
-
-    const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 4, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
+    // End model and shader stuff
 
     while (!rl.windowShouldClose()) {
-        const delta = rl.getFrameTime();
-        update_balls(&world, delta);
-        const time: f32 = @floatCast(rl.getTime());
-        rl.setShaderValue(shader, time_loc, &time, .float);
-        rl.setShaderValue(road_shader, time_road_loc, &time, .float);
-        player_shader_stuff(&world, shader, road_shader);
-        rl.beginDrawing();
-        camera.begin();
-        rl.clearBackground(rl.Color.dark_gray);
-        rendering.draw_models(&world);
-        // rl.drawModel(grass_patch, .{ .x = 0, .y = -3, .z = 0 }, 1, rl.Color.sky_blue);
-        rl.drawModel(road, .{ .x = 0, .y = 0, .z = 0 }, 1, rl.Color.black);
-        camera.end();
-        rl.endDrawing();
+        world.update();
+        player_shader_stuff(&world);
+        world.draw();
     }
 }

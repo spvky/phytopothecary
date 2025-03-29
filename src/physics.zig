@@ -19,35 +19,33 @@ pub const Rigidbody = struct {
 
     pub const Collider = union(ColliderTag) { sphere: f32, cuboid: rl.Vector3 };
 
-    pub fn DetectCollision(self: Self, self_transform: Transform, rhs: Self, rhs_transform: Transform) bool {
-        const center = self_transform.translation;
-        const r_center = rhs_transform.translation;
+    pub fn DetectCollision(self: Self, a_pos: rl.Vector3, rhs: Self, b_pos: rl.Vector3) bool {
         switch (self.collider) {
             .sphere => |radius| {
                 switch (rhs.collider) {
                     .sphere => |r_radius| {
-                        return (center.distance(r_center) <= radius + r_radius);
+                        return (a_pos.distance(b_pos) <= radius + r_radius);
                     },
                     .cuboid => |r_extents| {
                         var dmin: f32 = 0;
                         const r_half_extents = r_extents.scale(0.5);
-                        const r_min = rhs_transform.translation.subtract(r_half_extents);
-                        const r_max = rhs_transform.translation.add(r_half_extents);
+                        const r_min = b_pos.subtract(r_half_extents);
+                        const r_max = b_pos.add(r_half_extents);
 
-                        if (center.x < r_min.x) {
-                            dmin += std.math.pow(f32, center.x - r_min.x, 2);
-                        } else if (center.x > r_max.x) {
-                            dmin += std.math.pow(f32, center.x - r_max.x, 2);
+                        if (a_pos.x < r_min.x) {
+                            dmin += std.math.pow(f32, a_pos.x - r_min.x, 2);
+                        } else if (a_pos.x > r_max.x) {
+                            dmin += std.math.pow(f32, a_pos.x - r_max.x, 2);
                         }
-                        if (center.y < r_min.y) {
-                            dmin += std.math.pow(f32, center.y - r_min.y, 2);
-                        } else if (center.y > r_max.y) {
-                            dmin += std.math.pow(f32, center.y - r_max.y, 2);
+                        if (a_pos.y < r_min.y) {
+                            dmin += std.math.pow(f32, a_pos.y - r_min.y, 2);
+                        } else if (a_pos.y > r_max.y) {
+                            dmin += std.math.pow(f32, a_pos.y - r_max.y, 2);
                         }
-                        if (center.z < r_min.z) {
-                            dmin += std.math.pow(f32, center.z - r_min.z, 2);
-                        } else if (center.z > r_max.z) {
-                            dmin += std.math.pow(f32, center.z - r_max.z, 2);
+                        if (a_pos.z < r_min.z) {
+                            dmin += std.math.pow(f32, a_pos.z - r_min.z, 2);
+                        } else if (a_pos.z > r_max.z) {
+                            dmin += std.math.pow(f32, a_pos.z - r_max.z, 2);
                         }
                         return (dmin <= radius * radius);
                     },
@@ -56,33 +54,33 @@ pub const Rigidbody = struct {
             },
             .cuboid => |extents| {
                 const half_extents = extents.scale(0.5);
-                const min = self_transform.translation.subtract(half_extents);
-                const max = self_transform.translation.add(half_extents);
+                const min = a_pos.subtract(half_extents);
+                const max = b_pos.add(half_extents);
 
                 switch (rhs.collider) {
                     .sphere => |r_radius| {
                         var dmin: f32 = 0;
-                        if (r_center.x < min.x) {
-                            dmin += std.math.pow(f32, r_center.x - min.x, 2);
-                        } else if (r_center.x > max.x) {
-                            dmin += std.math.pow(f32, r_center.x - max.x, 2);
+                        if (b_pos.x < min.x) {
+                            dmin += std.math.pow(f32, b_pos.x - min.x, 2);
+                        } else if (b_pos.x > max.x) {
+                            dmin += std.math.pow(f32, b_pos.x - max.x, 2);
                         }
-                        if (r_center.y < min.y) {
-                            dmin += std.math.pow(f32, r_center.y - min.y, 2);
-                        } else if (r_center.y > max.y) {
-                            dmin += std.math.pow(f32, r_center.y - max.y, 2);
+                        if (b_pos.y < min.y) {
+                            dmin += std.math.pow(f32, b_pos.y - min.y, 2);
+                        } else if (b_pos.y > max.y) {
+                            dmin += std.math.pow(f32, b_pos.y - max.y, 2);
                         }
-                        if (r_center.z < min.z) {
-                            dmin += std.math.pow(f32, r_center.z - min.z, 2);
-                        } else if (r_center.z > max.z) {
-                            dmin += std.math.pow(f32, r_center.z - max.z, 2);
+                        if (b_pos.z < min.z) {
+                            dmin += std.math.pow(f32, b_pos.z - min.z, 2);
+                        } else if (b_pos.z > max.z) {
+                            dmin += std.math.pow(f32, b_pos.z - max.z, 2);
                         }
                         return (dmin <= r_radius * r_radius);
                     },
                     .cuboid => |r_extents| {
                         const r_half_extents = r_extents.scale(0.5);
-                        const r_min = rhs_transform.translation.subtract(r_half_extents);
-                        const r_max = rhs_transform.translation.add(r_half_extents);
+                        const r_min = b_pos.subtract(r_half_extents);
+                        const r_max = b_pos.add(r_half_extents);
 
                         if (max.x >= r_min.x and min.x <= r_max.x) {
                             if (max.y < r_min.y or min.y > r_max.y) return false;
@@ -105,8 +103,8 @@ test "AABB collision" {
     const b_t: Transform = .{ .translation = .{ .x = 0.5, .y = 0.5, .z = 0 } };
     const c_t: Transform = .{ .translation = .{ .x = 3.0, .y = 0.5, .z = 0 } };
 
-    try std.testing.expect(a.DetectCollision(a_t, b, b_t));
-    try std.testing.expect(!a.DetectCollision(a_t, c, c_t));
+    try std.testing.expect(a.DetectCollision(a_t.translation, b, b_t.translation));
+    try std.testing.expect(!a.DetectCollision(a_t.translation, c, c_t.translation));
 }
 
 pub const Velocity = struct { velocity: rl.Vector3 = .{ .x = 0, .y = 0, .z = 0 } };
