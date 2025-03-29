@@ -44,6 +44,8 @@ pub fn main() !void {
 
     // End model and shader stuff
 
+    try world.startup();
+
     while (!rl.windowShouldClose()) {
         world.update();
         player.player_shader_update(&world);

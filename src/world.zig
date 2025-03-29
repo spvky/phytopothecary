@@ -5,16 +5,20 @@ const rendering = @import("rendering.zig");
 
 pub const ShaderTag = enum { grass, road };
 pub const ModelTag = enum { grass, road, player };
+pub const SystemType = enum { draw, update, startup };
 
 const ShaderMap = std.AutoArrayHashMapUnmanaged(ShaderTag, rl.Shader);
 const ModelMap = std.AutoArrayHashMapUnmanaged(ModelTag, rl.Model);
-
+const ScheduleList = std.ArrayListUnmanaged(*const fn (*World) void);
 pub const World = struct {
     main_camera: rl.Camera,
     registry: ecs.Registry,
     allocator: std.mem.Allocator,
     shaders: ShaderMap,
     models: ModelMap,
+    startup_schedule: ScheduleList,
+    update_schedule: ScheduleList,
+    draw_schedule: ScheduleList,
 
     const Self = @This();
 
@@ -25,9 +29,12 @@ pub const World = struct {
         const registry = ecs.Registry.init(allocator);
         const shaders: ShaderMap = .empty;
         const models: ModelMap = .empty;
+        const startup_schedule: ScheduleList = .empty;
+        const update_schedule: ScheduleList = .empty;
+        const draw_schedule: ScheduleList = .empty;
         raylib_init();
 
-        return .{ .registry = registry, .allocator = allocator, .main_camera = camera, .shaders = shaders, .models = models };
+        return .{ .registry = registry, .allocator = allocator, .main_camera = camera, .shaders = shaders, .models = models, .startup_schedule = startup_schedule, .update_schedule = update_schedule, .draw_schedule = draw_schedule };
     }
 
     pub fn raylib_init() void {
@@ -68,6 +75,14 @@ pub const World = struct {
         try self.shaders.put(self.allocator, tag, shader.*);
     }
 
+    pub fn register_system(self: *Self, system: fn (*World) void, system_type: SystemType) !void {
+        switch (system_type) {
+            .update => try self.update_schedule.append(self.allocator, system),
+            .draw => try self.draw_schedule.append(self.allocator, system),
+            .startup => try self.startup_schedule.append(self.allocator, system),
+        }
+    }
+
     pub fn set_shader_time(self: *Self) void {
         const time: f32 = @floatCast(rl.getTime());
         var iter = self.shaders.iterator();
@@ -82,15 +97,29 @@ pub const World = struct {
         rl.closeWindow();
     }
 
+    pub fn startup(self: *Self) !void {
+        // Register systems
+        try self.register_system(rendering.draw_models, .draw);
+
+        for (self.startup_schedule.items) |system| {
+            system(self);
+        }
+    }
+
     pub fn update(self: *Self) void {
         self.set_shader_time();
+        for (self.update_schedule.items) |system| {
+            system(self);
+        }
     }
 
     pub fn draw(self: *Self) void {
         rl.beginDrawing();
         self.main_camera.begin();
         rl.clearBackground(rl.Color.dark_gray);
-        rendering.draw_models(self);
+        for (self.draw_schedule.items) |system| {
+            system(self);
+        }
         self.main_camera.end();
         rl.endDrawing();
     }
